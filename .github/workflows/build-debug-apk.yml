@@ -10,23 +10,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: 17
+          distribution: "temurin"
+      - uses: FossifyOrg/.github/.github/actions/gradle-cache@main
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Clean project
+        run: ./gradlew clean
 
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug
+      - name: Set nightly version
+        id: nightly
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          VERSION_NAME=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
+          SHORT_SHA=${HEAD_SHA::7}
+          NIGHTLY_VERSION="${VERSION_NAME}-nightly-${SHORT_SHA}"
+          echo "nightly_version=$NIGHTLY_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Archive APK
-        uses: actions/upload-artifact@v4
+      - name: Build debug APK
+        run: ./gradlew -PVERSION_NAME="${{ steps.nightly.outputs.nightly_version }}" assembleFossDebug
+
+      - name: Upload debug APK
+        id: upload-debug
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: FossifyPhone-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 30
+          name: "test-build-foss-debug"
+          path: "app/build/outputs/apk/foss/debug/*debug.apk"
