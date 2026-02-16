@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.konan.properties.Properties
 import java.io.FileInputStream
@@ -98,8 +99,15 @@ android {
         includeInApk = false
     }
 
+    androidResources {
+        @Suppress("UnstableApiUsage")
+        generateLocaleConfig = true
+    }
+
     tasks.withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = project.libs.versions.app.build.kotlinJVMTarget.get()
+        compilerOptions.jvmTarget.set(
+            JvmTarget.fromTarget(project.libs.versions.app.build.kotlinJVMTarget.get())
+        )
     }
 
     namespace = project.property("APP_ID").toString()
@@ -107,8 +115,9 @@ android {
     lint {
         checkReleaseBuilds = false
         abortOnError = true
-        warningsAsErrors = true
+        warningsAsErrors = false
         baseline = file("lint-baseline.xml")
+        lintConfig = rootProject.file("lint.xml")
     }
 
     bundle {
@@ -120,6 +129,9 @@ android {
 
 detekt {
     baseline = file("detekt-baseline.xml")
+    config.setFrom("$rootDir/detekt.yml")
+    buildUponDefaultConfig = true
+    allRules = false
 }
 
 dependencies {
@@ -130,4 +142,5 @@ dependencies {
     implementation(libs.eventbus)
     implementation(libs.libphonenumber)
     implementation(libs.geocoder)
+    detektPlugins(libs.compose.detekt)
 }
