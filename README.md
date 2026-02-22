@@ -60,7 +60,9 @@ you need to:
      Also see three-dots menu and "Special access" and find all that mention Fossify Phone and allow it (e.g. "Appear on top")
 
 5.2. In android "Choose default apps", you must make the Fossify Phone app the default for both
-     "Called ID & spam app" and "Phone app". on Samsung Galaxy S23+ with OneUI 7.0 and Android 15, the latter would refuse.
+     "Called ID & spam app" and "Phone app". on Samsung Galaxy S23+ with OneUI 7.0 and Android 15, the latter would refuse
+     (with "App was denied access / Access to this permission can put your personal and financial info at risk" error).
+     Allegedly one could fix that by using three-dots-menu and choosing "Allow restricted settings", but that didn't work for me.
      Workaround which worked for me is to have "USB debugging" in "Developer options" (search the net on how to enable
      that hidden menu), and then connect phone with computer, and issue following commands:
 
