@@ -1,34 +1,95 @@
 # Fossify Phone
-<img alt="Logo" src="graphics/icon.webp" width="120" />
 
-<a href='https://play.google.com/store/apps/details?id=org.fossify.phone'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' height=80/></a> <a href="https://f-droid.org/packages/org.fossify.phone/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-en.svg" alt="Get it on F-Droid" height=80/></a> <a href="https://apt.izzysoft.de/fdroid/index/apk/org.fossify.phone"><img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height=80/></a>
+## Summary
+This is unofficial fork of Fossify phone from https://www.github.com/FossifyOrg
 
-Empower your calls, and safeguard your data. Fossify Phone redefines the mobile app experience with unmatched privacy and efficiency. Free from ads and intrusive permissions, it's designed for seamless and secure everyday communication.
+as a temporary fix to have notifications  by implementing
+never-fully-finished https://github.com/FossifyOrg/Phone/pull/253 until 
+https://github.com/FossifyOrg/Phone/issues/83 is more properly fixed.
 
-📱 **YOUR PRIVACY, OUR PRIORITY:**  
-Welcome to the Fossify Phone App, where your digital privacy is paramount. Switch to a mobile experience that respects your data, ensuring your personal information remains secure and private.
+## Build instructions
 
-🚀 **SEAMLESS PERFORMANCE:**  
-The Fossify Phone App offers a fluid and responsive mobile interface, enhancing your phone's performance while safeguarding your privacy. Experience a lag-free, smooth user experience, optimized for efficiency and speed.
+This is already done by this repo, but if you want to reproduce it yourself,
+you need to: 
 
-🌐 **OPEN-SOURCE ASSURANCE:**  
-With the Fossify Phone App, transparency is at your fingertips. Built on an open-source foundation, our app allows you to review our code on GitHub, fostering trust and a community committed to privacy.
+1. fork fossify phone from https://github.com/FossifyOrg/Phone
 
-🖼️ **TAILOR-MADE CUSTOMIZATION:**  
-Customize your mobile experience with the Fossify Phone App. Adjust your app settings for a personalized interface, from thematic designs to functional preferences. Enjoy a user interface that's intuitive and uniquely yours.
+2. checkout 1.6.0 version (last one that the following PR applies cleanly)
 
-🔋 **EFFICIENT RESOURCE MANAGEMENT:**  
-The Fossify Phone App is designed for optimal resource usage, contributing to extended battery life. It's light on your phone's resources, ensuring your device runs efficiently with minimized battery drain.
+3. apply PR from https://github.com/FossifyOrg/Phone/pull/253
+   to fix notifications on missed calls (otherwise you'll not see missed calls!)
+   e.g. `curl -s https://github.com/FossifyOrg/Phone/pull/253.diff | patch -p1`
 
-Download the Fossify Phone App now and step into a mobile world where privacy seamlessly blends with functionality. Your journey towards a safer, personalized mobile experience starts here.
+4. setup GitHub to build the app:
 
-➡️ Explore more Fossify apps: https://www.fossify.org<br>
-➡️ Open-Source Code: https://www.github.com/FossifyOrg<br>
-➡️ Join the community on Reddit: https://www.reddit.com/r/Fossify<br>
-➡️ Connect on Telegram: https://t.me/Fossify
+4.1. install prerequisites 
+     on Debian Bookworm: `apt install openjdk-17-jre-headless adb` # to get keytool and adb
 
-<div align="center">
-<img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_en-US.png" width="30%">
-<img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_en-US.png" width="30%">
-<img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_en-US.png" width="30%">
-</div>
+4.2. generate signing key
+     ```
+      keytool -genkeypair \
+      -v \
+      -keystore release.keystore \
+      -alias release \
+      -keyalg RSA \
+      -keysize 4096 \
+      -validity 10000
+     ```
+
+4.3. On GitHub fork of FossifyPhone settings, under Security, click "Secrets and Variables"
+     and then "Actions" and then under "Secrets" tab setup "Repository
+     secrets" by clicking 4 times on "New repository secret"
+
+     - RELEASE_KEYSTORE_BASE64: (output from "base64 -w 0 release.keystore")
+     - SIGNING_KEY_ALIAS: release (because of "-alias relase" in keytool)
+     - SIGNING_KEY_PASSWORD: (password from keytool - make sure there is no trailing whitespace or newline!)
+     - SIGNING_STORE_PASSWORD: (same as above)
+
+4.4. create .github/workflows/build-release-apk.yml in your fork to build signed release
+     see https://github.com/mnalis/Fossify-Phone/blob/master-mn/.github/workflows/build-release-apk.yml
+     for example
+
+4.5 in your GitHub fork of FossifyPhone, click "Actions", "Build signed release apk", "Run workflow",
+    choose your branch with all the changes, and click green "Run workflow" button
+
+4.6 wait ~5 minutes so it produces `foss-release-signed.zip`
+
+4.7. download the `.zip` to your phone, extrack `.apk` from it and install it
+
+
+
+## Install and configure the app
+
+5. setup the app on the phone:
+
+5.1. long click on the Fossify Phone app icon, select `(i)` and add all permission that it wants to the app.
+     also see three-dots menu and "Special access" and find all that mention Fossify Phone and allow it (e.g. "Appear on top")
+
+5.2. in android "Choose defualt apps", you must make the Fossify Phone app the default for both
+     "Called ID & spam app" and "Phone app". on SamsungGalaxy S23+ with OneUI 7.0 and Android 15, the latter would refuse.
+
+     workaround which worked for me is to have "USB debugging" in "Developer options" (search the net on how to enable
+     that hidden menu), and then connect phone with computer, and issue following commands:
+
+     ```
+     adb shell cmd role add-role-holder android.app.role.DIALER org.fossify.phone
+     adb shell cmd role get-role-holders android.app.role.DIALER # verify if it worked - should return "org.fossify.phone"
+     adb shell pm grant org.fossify.phone android.permission.READ_CALL_LOG
+     adb shell pm grant org.fossify.phone android.permission.WRITE_CALL_LOG
+     adb shell pm grant org.fossify.phone android.permission.READ_CONTACTS
+     adb shell pm grant org.fossify.phone android.permission.READ_PHONE_STATE
+     adb shell pm grant org.fossify.phone android.permission.ANSWER_PHONE_CALLS
+     #adb shell dumpsys role # if need to debug system data only
+     adb shell settings get secure dialer_default_application # returned "null" for me, which is apprently OK
+     ```
+
+5.3. (optional?) uninstall Samsung Dialer:
+
+     ```
+     adb shell pm uninstall --user 10 com.samsung.android.dialer      # might fail on your system if you didn't use work profile
+     adb shell pm uninstall --user 0 com.samsung.android.dialer       # (alternative is "adb shell pm disable-user --user 0 com.samsung.android.dialer")
+     ```
+
+5.4. reboot
+
+5.5. test receiving calls, making calls, and seeing missed calles
